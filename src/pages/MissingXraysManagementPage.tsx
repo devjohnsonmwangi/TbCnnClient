@@ -9,6 +9,7 @@ import { useAuth } from "../hooks/useAuthContext";
 import { PatientsService } from "../services/patientsService";
 import { ResultsService } from "../services/resultsService";
 import { PatientResponseDto, DiseaseType } from "../types/api.types";
+import { fileToBase64, isValidBase64 } from "../utils/imageUtils";
 
 interface MissingXRayPatient extends PatientResponseDto {
   hasXray: boolean;

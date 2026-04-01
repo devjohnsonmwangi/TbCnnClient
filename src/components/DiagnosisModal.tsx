@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { FiX, FiArrowLeft, FiCheck, FiUpload } from "react-icons/fi";
 import { PatientsService } from "../services/patientsService";
 import { CreatePatientDto } from "../types/api.types";
+import { fileToBase64, isValidBase64 } from "../utils/imageUtils";
 
 interface FormStep1 {
   firstName: string;
@@ -33,18 +34,6 @@ interface FormStep3 {
 }
 
 type FormData = FormStep1 & FormStep2 & FormStep3;
-
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
 
 /** Validates email format */
 const isValidEmail = (email: string): boolean => {

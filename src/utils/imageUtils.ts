@@ -309,6 +309,177 @@ export const batchFileToBase64 = async (files: File[]): Promise<string[]> => {
   }
 };
 
+/**
+ * Extract pure Base64 string from data URI
+ * Handles both data:image/... format and raw base64
+ * @param imageBase64 - Base64 string (with or without data URI prefix)
+ * @returns string - Pure Base64 string without data URI prefix
+ */
+export const extractBase64FromDataUri = (imageBase64: string): string => {
+  if (!imageBase64) return '';
+  
+  if (imageBase64.startsWith('data:image')) {
+    // Extract base64 from data:image/...;base64,... format
+    const parts = imageBase64.split(',');
+    return parts.length > 1 ? parts[1] : imageBase64;
+  }
+  
+  if (imageBase64.startsWith('data:')) {
+    const parts = imageBase64.split(',');
+    return parts.length > 1 ? parts[1] : imageBase64;
+  }
+  
+  return imageBase64;
+};
+
+/**
+ * Validate if a string is Base64 format
+ * @param str - String to validate
+ * @returns boolean - true if valid Base64
+ */
+export const isValidBase64 = (str: string): boolean => {
+  if (!str || typeof str !== 'string') return false;
+  
+  try {
+    // Try to decode and check length
+    const decoded = atob(extractBase64FromDataUri(str));
+    return decoded.length > 0;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Download a Base64 image as a file
+ * @param base64String - Base64 encoded image string
+ * @param fileName - Name of the file to download
+ * @param mimeType - MIME type (default: image/png)
+ */
+export const downloadBase64Image = (
+  base64String: string,
+  fileName: string,
+  mimeType: string = 'image/png'
+): void => {
+  try {
+    const pure64 = extractBase64FromDataUri(base64String);
+    const byteCharacters = atob(pure64);
+    const byteNumbers = new Array(byteCharacters.length);
+    
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName.includes('.') ? fileName : `${fileName}.${mimeType.split('/')[1]}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to download image:', error);
+    throw new Error('Failed to download image');
+  }
+};
+
+/**
+ * Convert Base64 to Blob for file operations
+ * @param base64String - Base64 encoded image string
+ * @param mimeType - MIME type (default: image/png)
+ * @returns Blob - Blob object
+ */
+export const base64ToBlob = (
+  base64String: string,
+  mimeType: string = 'image/png'
+): Blob => {
+  const pure64 = extractBase64FromDataUri(base64String);
+  const byteCharacters = atob(pure64);
+  const byteNumbers = new Array(byteCharacters.length);
+  
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+};
+
+/**
+ * Detect MIME type from filename or base64 data
+ * @param filename - File name or extension
+ * @param base64String - Optional base64 string
+ * @returns string - MIME type
+ */
+export const detectMimeType = (
+  filename?: string,
+  base64String?: string
+): string => {
+  // Try to detect from data URI
+  if (base64String && base64String.startsWith('data:')) {
+    const match = base64String.match(/^data:([^;]+)/);
+    if (match) return match[1];
+  }
+  
+  // Try to detect from filename
+  if (filename) {
+    const ext = filename.toLowerCase().split('.').pop();
+    const mimeMap: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      bmp: 'image/bmp',
+    };
+    if (ext && mimeMap[ext]) {
+      return mimeMap[ext];
+    }
+  }
+  
+  return 'image/png';
+};
+
+/**
+ * Validate image dimensions
+ * @param base64String - Base64 encoded image
+ * @param minWidth - Minimum width requirement
+ * @param minHeight - Minimum height requirement
+ * @returns Promise<{ valid: boolean; width: number; height: number }>
+ */
+export const validateImageDimensions = async (
+  base64String: string,
+  minWidth: number = 100,
+  minHeight: number = 100
+): Promise<{ valid: boolean; width: number; height: number }> => {
+  return new Promise((resolve) => {
+    const dataUri = base64ToDataUrl(base64String);
+    const img = new Image();
+    
+    img.onload = () => {
+      const valid = img.width >= minWidth && img.height >= minHeight;
+      resolve({
+        valid,
+        width: img.width,
+        height: img.height,
+      });
+    };
+    
+    img.onerror = () => {
+      resolve({
+        valid: false,
+        width: 0,
+        height: 0,
+      });
+    };
+    
+    img.src = dataUri;
+  });
+};
+
 // Export all functions as a namespace for convenience
 export const ImageUtils = {
   fileToBase64,
@@ -322,6 +493,12 @@ export const ImageUtils = {
   createThumbnail,
   formatFileSize,
   batchFileToBase64,
+  extractBase64FromDataUri,
+  isValidBase64,
+  downloadBase64Image,
+  base64ToBlob,
+  detectMimeType,
+  validateImageDimensions,
 };
 
 export default ImageUtils;
