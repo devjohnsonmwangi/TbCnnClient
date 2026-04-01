@@ -11,7 +11,7 @@ import { PatientsService } from "../services/patientsService";
 import { ResultsService } from "../services/resultsService";
 import { PatientResponseDto, DiagnosisResultResponseDto, DiagnosisStatus } from "../types/api.types";
 import { DiagnosisModal } from "../components/DiagnosisModal";
-import { PatientDetailsModal } from "../components/PatientDetailsModal";
+// PatientDetailsModal replaced with PatientDetailsPage navigation
 import { ResultDetailsModal } from "../components/ResultDetailsModal";
 
 interface IDashboardPatient extends PatientResponseDto {
@@ -36,7 +36,6 @@ function PhysicianDashboard() {
   const [currentDateTime, setCurrentDateTime] = useState<string>("");
   
   // Detail modals state
-  const [selectedPatient, setSelectedPatient] = useState<PatientResponseDto | null>(null);
   const [selectedResult, setSelectedResult] = useState<DiagnosisResultResponseDto | null>(null);
 
   // Update current date and time
@@ -448,7 +447,7 @@ function PhysicianDashboard() {
                           </td>
                           <td className="px-3 py-2 text-sm">
                             <button
-                              onClick={() => setSelectedPatient(patient)}
+                              onClick={() => navigate(`/patient/${patient.id}`, { state: { patient, results: results.filter(r => r.patientId === patient.id) } })}
                               className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-medium transition-colors text-xs sm:text-sm"
                             >
                               <FiEye size={14} /> View
@@ -648,14 +647,6 @@ function PhysicianDashboard() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleRefresh}
       />
-      
-      {selectedPatient && (
-        <PatientDetailsModal
-          isOpen={!!selectedPatient}
-          patient={selectedPatient}
-          onClose={() => setSelectedPatient(null)}
-        />
-      )}
 
       {selectedResult && (
         <ResultDetailsModal

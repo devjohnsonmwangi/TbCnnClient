@@ -20,6 +20,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserAnalysisDetails from "./pages/UserAnalysisDetails";
 import ProfessionDetailsPage from "./pages/ProfessionDetailsPage";
 import MissingXraysManagementPage from "./pages/MissingXraysManagementPage";
+import PatientDetailsPage from "./pages/PatientDetailsPage";
 
 function App() {
   return (
@@ -84,6 +85,14 @@ function App() {
               element={
                 <RoleProtectedRoute requiredRoles={["ADMIN", "SUPER_ADMIN"]}>
                   <ProfessionDetailsPage />
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path="/patient/:patientId"
+              element={
+                <RoleProtectedRoute requiredRoles={["ADMIN", "SUPER_ADMIN", "PHYSICIAN", "RADIOLOGIST"]}>
+                  <PatientDetailsPage />
                 </RoleProtectedRoute>
               }
             />

@@ -36,7 +36,6 @@ const MissingXraysManagementPage: React.FC = () => {
   const [editingData, setEditingData] = useState<PatientEditState>({});
   const [uploadingPatients, setUploadingPatients] = useState<Set<string>>(new Set());
   const [fileUploads, setFileUploads] = useState<FileUploadState>({});
-  const [processingPatients, setProcessingPatients] = useState<Set<string>>(new Set());
 
   // Load patients missing X-rays
   useEffect(() => {
@@ -140,7 +139,7 @@ const MissingXraysManagementPage: React.FC = () => {
     setFileUploads({ ...fileUploads, [patientId]: file });
   };
 
-  // Upload X-ray for a patient
+  // Upload and analyze X-ray for a patient
   const handleUploadXray = async (patientId: string) => {
     const file = fileUploads[patientId];
     if (!file) {
@@ -155,7 +154,13 @@ const MissingXraysManagementPage: React.FC = () => {
       reader.onload = async (e) => {
         try {
           const base64 = e.target?.result as string;
-          await patientsService.updatePatient(patientId, { imageBase64: base64 });
+          const toastId = toast.loading("📤 Uploading X-ray and analyzing...");
+          
+          // Call resubmitXray which sends base64 to model for analysis
+          const result = await patientsService.resubmitXray(patientId, base64);
+          
+          toast.dismiss(toastId);
+          toast.success("✅ X-ray analyzed successfully. Results available in patient details.");
           
           // Update patient state and remove from missing list
           setPatients(patients.filter(p => p.id !== patientId));
@@ -165,10 +170,10 @@ const MissingXraysManagementPage: React.FC = () => {
           delete newFileUploads[patientId];
           setFileUploads(newFileUploads);
 
-          toast.success("X-ray uploaded successfully");
         } catch (error) {
-          console.error("Upload failed:", error);
-          toast.error("Failed to upload X-ray");
+          console.error("Analysis failed:", error);
+          const errorMsg = error instanceof Error ? error.message : "Failed to analyze X-ray";
+          toast.error(`❌ Analysis failed: ${errorMsg}`);
         } finally {
           const newUploadingPatients = new Set(uploadingPatients);
           newUploadingPatients.delete(patientId);
@@ -177,30 +182,11 @@ const MissingXraysManagementPage: React.FC = () => {
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error("Upload failed:", error);
+      console.error("Upload preparation failed:", error);
       toast.error("Failed to upload X-ray");
       const newUploadingPatients = new Set(uploadingPatients);
       newUploadingPatients.delete(patientId);
       setUploadingPatients(newUploadingPatients);
-    }
-  };
-
-  // Submit patient for diagnosis
-  const handleSubmitForDiagnosis = async (patientId: string) => {
-    try {
-      setProcessingPatients(new Set([...processingPatients, patientId]));
-      
-      // Remove from missing X-rays list
-      setPatients(patients.filter(p => p.id !== patientId));
-      toast.success("Patient submitted for diagnosis processing");
-      
-    } catch (error) {
-      console.error("Failed to submit for diagnosis:", error);
-      toast.error("Failed to submit for diagnosis");
-    } finally {
-      const newProcessingPatients = new Set(processingPatients);
-      newProcessingPatients.delete(patientId);
-      setProcessingPatients(newProcessingPatients);
     }
   };
 
@@ -216,7 +202,6 @@ const MissingXraysManagementPage: React.FC = () => {
 
   const isEditing = (patientId: string) => editingPatientsIds.has(patientId);
   const isUploading = (patientId: string) => uploadingPatients.has(patientId);
-  const isProcessing = (patientId: string) => processingPatients.has(patientId);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex flex-col">
@@ -481,34 +466,17 @@ const MissingXraysManagementPage: React.FC = () => {
                           <button
                             onClick={() => handleUploadXray(patient.id)}
                             disabled={!fileUploads[patient.id] || isUploading(patient.id)}
-                            className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isUploading(patient.id) ? (
                               <>
                                 <FiRotateCw className="animate-spin" size={16} />
-                                Uploading...
+                                Analyzing...
                               </>
                             ) : (
                               <>
                                 <FiUpload size={16} />
-                                Upload X-Ray
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleSubmitForDiagnosis(patient.id)}
-                            disabled={!fileUploads[patient.id] || isUploading(patient.id) || isProcessing(patient.id)}
-                            className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isProcessing(patient.id) ? (
-                              <>
-                                <FiRotateCw className="animate-spin" size={16} />
-                                Processing...
-                              </>
-                            ) : (
-                              <>
-                                <FiCheckCircle size={16} />
-                                Submit for Diagnosis
+                                Resubmit & Analyze
                               </>
                             )}
                           </button>

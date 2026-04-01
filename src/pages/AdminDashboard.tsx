@@ -8,7 +8,7 @@ import { UsersService } from "../services/usersService";
 import { LogsService, SystemLog } from "../services/logsService";
 import { PatientResponseDto, DiagnosisResultResponseDto, UserResponseDto, DiagnosisStatus } from "../types/api.types";
 import { DiagnosisModal } from "../components/DiagnosisModal";
-import { PatientDetailsModal } from "../components/PatientDetailsModal";
+// PatientDetailsModal replaced with PatientDetailsPage navigation
 import { ResultDetailsModal } from "../components/ResultDetailsModal";
 import { useAuth } from "../hooks/useAuthContext";
 
@@ -45,7 +45,6 @@ function AdminDashboard() {
   const [logsFilter, setLogsFilter] = useState<string>("all");
   
   // Detail modals state
-  const [selectedPatient, setSelectedPatient] = useState<PatientResponseDto | null>(null);
   const [selectedResult, setSelectedResult] = useState<DiagnosisResultResponseDto | null>(null);
 
   useEffect(() => {
@@ -430,7 +429,7 @@ function AdminDashboard() {
                           <td className="px-3 py-2 text-xs text-gray-600">{new Date(patient.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                           <td className="px-3 py-2 text-center">
                             <button
-                              onClick={() => setSelectedPatient(patient)}
+                              onClick={() => navigate(`/patient/${patient.id}`, { state: { patient, results: results.filter(r => r.patientId === patient.id) } })}
                               className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition font-semibold text-xs"
                               title="View details"
                             >
@@ -862,11 +861,7 @@ function AdminDashboard() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleRefresh}
       />
-      <PatientDetailsModal
-        isOpen={!!selectedPatient}
-        onClose={() => setSelectedPatient(null)}
-        patient={selectedPatient}
-      />
+
       <ResultDetailsModal
         isOpen={!!selectedResult}
         onClose={() => setSelectedResult(null)}

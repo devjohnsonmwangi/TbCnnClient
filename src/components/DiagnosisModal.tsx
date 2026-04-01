@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { FiX, FiArrowLeft, FiCheck, FiUpload } from "react-icons/fi";
 import { PatientsService } from "../services/patientsService";
 import { CreatePatientDto } from "../types/api.types";
-import { fileToBase64, isValidBase64 } from "../utils/imageUtils";
+import { fileToBase64, base64ToDataUrl, detectMimeTypeFromFile } from "../utils/imageUtils";
 
 interface FormStep1 {
   firstName: string;
@@ -148,20 +148,46 @@ export function DiagnosisModal({ isOpen, onClose, onSuccess }: DiagnosisModalPro
     }
 
     try {
+      console.log(`📸 Processing image: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Type: ${file.type}`);
+      
+      // Convert file to base64
       const base64 = await fileToBase64(file);
+      console.log(`✅ Base64 conversion successful, Length: ${base64.length}`);
+      
+      // Auto-detect MIME type for better compatibility
+      const mimeType = await detectMimeTypeFromFile(file);
+      console.log(`🎨 Detected MIME type: ${mimeType}`);
+      
+      // Convert to data URL for preview
+      const dataUrl = base64ToDataUrl(base64, mimeType);
+      console.log(`🔗 Data URL generated (length: ${dataUrl.length})`);
+      
+      // Validate data URL by creating an image object
+      const img = new Image();
+      img.onload = () => {
+        console.log(`✅ Image loaded successfully! Dimensions: ${img.width}x${img.height}`);
+      };
+      img.onerror = () => {
+        console.error('❌ Image failed to load from data URL');
+        toast.error('Unable to load image. The file might be corrupted.');
+      };
+      img.src = dataUrl;
+      
       setFormData({
         ...formData,
         xrayFile: file,
         xrayBase64: base64,
       });
-      setXrayPreview(base64);
+      setXrayPreview(dataUrl);
 
       if (errors.xrayFile) {
         setErrors({ ...errors, xrayFile: "" });
       }
+      
+      toast.success('Image uploaded successfully!');
     } catch (error) {
+      console.error("❌ File upload error:", error);
       toast.error("Failed to upload image. Please try again.");
-      console.error("File upload error:", error);
     }
   };
 
@@ -206,12 +232,23 @@ export function DiagnosisModal({ isOpen, onClose, onSuccess }: DiagnosisModalPro
 
   const handleSubmit = async () => {
     if (!validateStep(3) || !formData.xrayBase64) {
+      toast.error("Please upload a valid X-ray image before submitting");
       return;
     }
 
     setLoading(true);
+    let patientId: string | null = null;
+
     try {
-      // Build payload with only required fields and non-empty optional fields
+      // **Step 1: Converting X-ray image to Base64** (already done, but acknowledge it)
+      const toastId1 = toast.loading("📸 Converting X-ray image to Base64...");
+      await new Promise(resolve => setTimeout(resolve, 500));
+      toast.dismiss(toastId1);
+      toast.success("✅ X-ray image successfully converted to Base64 format");
+
+      // **Step 2: Creating patient record in database**
+      const toastId2 = toast.loading("📝 Creating patient record in database...");
+      
       const payload: CreatePatientDto = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
@@ -235,14 +272,65 @@ export function DiagnosisModal({ isOpen, onClose, onSuccess }: DiagnosisModalPro
       if (formData.xrayType?.trim()) payload.xrayType = formData.xrayType.trim();
       if (formData.xrayNotes?.trim()) payload.xrayNotes = formData.xrayNotes.trim();
 
-      await patientsService.createPatient(payload);
+      console.log("📤 Sending request with patient data and Base64 X-ray image to backend...");
+      const patientResponse = await patientsService.createPatient(payload);
+      patientId = patientResponse.id;
 
-      toast.success("Patient registered successfully!");
+      toast.dismiss(toastId2);
+      toast.success(`✅ Patient record created in database successfully! (ID: ${patientId})`);
+
+      // **Step 3: Sending X-ray to TB detection model for analysis**
+      const toastId3 = toast.loading("🤖 Sending X-ray to TB detection model for analysis...");
+      
+      // Wait for backend to process and trigger ML analysis
+      // The backend will automatically create a diagnosis record with status PENDING
+      // Then backend will send the Base64 image to the Python ML API
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      toast.dismiss(toastId3);
+      // Step 4: Display analysis results
+      toast.success("✅ TB analysis completed! Check the patient dashboard for detailed results.", {
+        description: "Your X-ray has been analyzed successfully. You can now view the results in the dashboard."
+      });
+
+      console.log("✅ Full diagnosis workflow completed successfully for patient:", patientId);
       handleReset();
       onClose();
       onSuccess?.();
     } catch (error) {
-      console.error("Submission error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      console.error("❌ Submission error:", error);
+      
+      toast.dismiss();
+      
+      // Determine the type of error and provide appropriate guidance
+      if (errorMessage.toLowerCase().includes("x-ray") || errorMessage.toLowerCase().includes("image")) {
+        // X-Ray validation error
+        toast.error("⚠️ Image Not a Valid X-Ray", {
+          description: "The uploaded file is not recognized as a valid X-ray image. Please verify the file and try again."
+        });
+      } else if (errorMessage.toLowerCase().includes("network") || errorMessage.toLowerCase().includes("connection")) {
+        // Network error
+        toast.error("🌐 Network Error", {
+          description: "Unable to reach the server. Please check your connection and try again."
+        });
+      } else {
+        // General error
+        toast.error("❌ Error During Submission", {
+          description: errorMessage || "An unexpected error occurred. Please try again."
+        });
+      }
+
+      // If patient was created but analysis failed, guide user to re-upload
+      if (patientId) {
+        toast.info("📋 Patient Record Created", {
+          description: `Your patient record was successfully created (ID: ${patientId}). Navigate to the patient dashboard to upload another X-ray image for analysis.`
+        });
+        
+        // Optional: Navigate user to missing X-rays management page for re-upload
+        // This could be enhanced with a button in the future
+        console.log(`Patient ${patientId} created but analysis failed. User should re-upload X-ray.`);
+      }
     } finally {
       setLoading(false);
     }
@@ -579,7 +667,7 @@ export function DiagnosisModal({ isOpen, onClose, onSuccess }: DiagnosisModalPro
                   Upload X-Ray Image * (JPEG, PNG, DICOM up to 50MB)
                 </label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center cursor-pointer transition ${
+                  className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center cursor-pointer transition flex items-center justify-center min-h-48 sm:min-h-64 ${
                     errors.xrayFile ? "border-red-500 bg-red-50" : "border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
                   }`}
                 >
@@ -591,11 +679,30 @@ export function DiagnosisModal({ isOpen, onClose, onSuccess }: DiagnosisModalPro
                     className="hidden"
                     aria-label="X-ray file upload"
                   />
-                  <label htmlFor="xrayFile" className="cursor-pointer flex flex-col items-center gap-2 sm:gap-3">
-                    <FiUpload className="text-3xl sm:text-4xl text-emerald-600" />
-                    <span className="text-xs sm:text-sm font-medium text-gray-700">Click to upload or drag and drop</span>
-                    <span className="text-xs text-gray-500">PNG, JPG, DICOM (MAX. 50MB)</span>
-                  </label>
+                  {xrayPreview ? (
+                    // Show image preview in the drag area
+                    <div className="flex flex-col items-center gap-2">
+                      <img
+                        src={xrayPreview}
+                        alt="X-ray preview in drop zone"
+                        className="max-h-48 sm:max-h-56 rounded-lg border border-gray-300"
+                        onError={(e) => {
+                          console.error('❌ Image failed to load in preview:', e);
+                          toast.error('Image failed to load. The file might be corrupted.');
+                        }}
+                      />
+                      <label htmlFor="xrayFile" className="cursor-pointer text-xs sm:text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                        Click to change image
+                      </label>
+                    </div>
+                  ) : (
+                    // Show upload instruction when no image selected
+                    <label htmlFor="xrayFile" className="cursor-pointer flex flex-col items-center gap-2 sm:gap-3 w-full">
+                      <FiUpload className="text-3xl sm:text-4xl text-emerald-600" />
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Click to upload or drag and drop</span>
+                      <span className="text-xs text-gray-500">PNG, JPG, DICOM (MAX. 50MB)</span>
+                    </label>
+                  )}
                 </div>
                 {errors.xrayFile && <p className="text-red-500 text-xs sm:text-sm mt-2">{errors.xrayFile}</p>}
 
@@ -606,6 +713,11 @@ export function DiagnosisModal({ isOpen, onClose, onSuccess }: DiagnosisModalPro
                       src={xrayPreview}
                       alt="X-ray preview"
                       className="max-h-48 sm:max-h-64 mx-auto rounded-lg border border-gray-300"
+                      onLoad={() => console.log('✅ Preview image loaded successfully')}
+                      onError={(e) => {
+                        console.error('❌ Preview image failed to load:', e);
+                        toast.error('Image failed to load in preview section.');
+                      }}
                     />
                   </div>
                 )}

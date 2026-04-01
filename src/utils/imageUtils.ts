@@ -4,6 +4,43 @@
  */
 
 /**
+ * Detect MIME type from file magic bytes
+ * @param file - Image file to detect type for
+ * @returns Promise<string> - Detected MIME type
+ */
+export const detectMimeTypeFromFile = (file: File | Blob): Promise<string> => {
+  return new Promise((resolve) => {
+    // Use file.type if available and valid
+    if (file.type && file.type.startsWith('image/')) {
+      resolve(file.type);
+      return;
+    }
+
+    // If no type, detect from magic bytes
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const arr = new Uint8Array(e.target?.result as ArrayBuffer).subarray(0, 4);
+      let header = '';
+      
+      for (let i = 0; i < arr.length; i++) {
+        header += arr[i].toString(16);
+      }
+
+      let mime = 'image/png'; // default
+      
+      if (header.startsWith('89504e47')) mime = 'image/png';
+      else if (header.startsWith('ffd8ff')) mime = 'image/jpeg';
+      else if (header.startsWith('47494638')) mime = 'image/gif';
+      else if (header.startsWith('524946')) mime = 'image/webp';
+      
+      resolve(mime);
+    };
+    
+    reader.readAsArrayBuffer(file.slice(0, 4));
+  });
+};
+
+/**
  * Convert File or Blob to base64 string
  * @param file - Image file from input
  * @returns Promise<string> - Base64 encoded image string
@@ -16,11 +53,21 @@ export const fileToBase64 = (file: File | Blob): Promise<string> => {
       const result = reader.result as string;
       // Remove the "data:image/...;base64," prefix if present
       const base64 = result.includes(',') ? result.split(',')[1] : result;
+      
+      if (!base64 || base64.length === 0) {
+        reject(new Error('Failed to convert file to base64: empty result'));
+        return;
+      }
+      
       resolve(base64);
     };
     
     reader.onerror = (error) => {
       reject(new Error(`Failed to read file: ${error}`));
+    };
+    
+    reader.onabort = () => {
+      reject(new Error('File reading was aborted'));
     };
     
     reader.readAsDataURL(file);

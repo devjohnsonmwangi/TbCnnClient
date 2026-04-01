@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiMail, FiLock, FiArrowLeft } from "react-icons/fi";
+import { FiMail, FiLock, FiArrowLeft, FiActivity } from "react-icons/fi";
 import { useAuth } from "../hooks/useAuthContext";
 
 function Login() {
@@ -138,8 +138,9 @@ function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
+              {isLoading && <FiActivity className="animate-spin" size={20} />}
               {isLoading ? "Signing in..." : "Sign In"}
             </button>
           </form>

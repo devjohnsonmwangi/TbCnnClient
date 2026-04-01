@@ -298,6 +298,68 @@ export class PatientsService {
   }
 
   /**
+   * Trigger TB diagnosis analysis on an existing X-ray
+   */
+  async triggerXrayAnalysis(
+    patientId: string,
+    xrayId: string
+  ): Promise<PatientResponse> {
+    try {
+      const response = await this.apiClient.post<ApiResponse<PatientResponse>>(
+        `${API_ENDPOINTS.PATIENTS.GET_BY_ID(patientId)}/xrays/${xrayId}/trigger-analysis`,
+        {},
+        { timeout: 90000 } // 90 seconds for analysis
+      );
+
+      if (response.data.data) {
+        toast.success(
+          response.data.message || 'X-ray analysis triggered successfully'
+        );
+        return response.data.data;
+      }
+      throw new Error(
+        response.data.message || 'Failed to trigger X-ray analysis'
+      );
+    } catch (error) {
+      throw this.handleError(
+        error,
+        `Failed to trigger analysis for X-ray ${xrayId}`
+      );
+    }
+  }
+
+  /**
+   * Resubmit failed X-ray with new image for analysis
+   */
+  async resubmitXray(
+    patientId: string,
+    imageBase64: string
+  ): Promise<PatientResponse> {
+    try {
+      const response = await this.apiClient.post<ApiResponse<PatientResponse>>(
+        `${API_ENDPOINTS.PATIENTS.GET_BY_ID(patientId)}/xrays/resubmit`,
+        { imageBase64 },
+        { timeout: 90000 } // 90 seconds for analysis
+      );
+
+      if (response.data.data) {
+        toast.success(
+          response.data.message || 'X-ray resubmitted and analysis completed'
+        );
+        return response.data.data;
+      }
+      throw new Error(
+        response.data.message || 'Failed to resubmit X-ray'
+      );
+    } catch (error) {
+      throw this.handleError(
+        error,
+        'Failed to resubmit X-ray for analysis'
+      );
+    }
+  }
+
+  /**
    * Handle API errors
    */
   private handleError(error: unknown, fallbackMessage: string): Error {

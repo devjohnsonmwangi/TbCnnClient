@@ -77,6 +77,7 @@ export const API_ENDPOINTS = {
     UPDATE: (id: string) => `/xrays/${id}`,
     DELETE: (id: string) => `/xrays/${id}`,
     GET_BY_PATIENT: (patientId: string) => `/xrays/patient/${patientId}`,
+    GET_FAILED: '/xrays/status/failed',
     UPDATE_STATUS: (id: string) => `/xrays/${id}/status`,
   },
   RESULTS: {
