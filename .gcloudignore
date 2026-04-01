@@ -1,0 +1,49 @@
+# .gcloudignore file for Cloud Build
+# Files to exclude from Cloud Build context
+
+# Git
+.git
+.gitignore
+.github
+
+# Node
+node_modules
+npm-debug.log
+pnpm-debug.log
+yarn-error.log
+
+# Development
+.env
+.env.local
+.env.*.local
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+
+# Build artifacts (we rebuild in Cloud Build)
+dist
+build
+
+# Documentation and config (optional, keep for reference)
+# README.md
+# vite.config.ts
+# tsconfig.json
+
+# Test files (optional to include)
+# __tests__
+# *.test.ts
+# *.spec.ts
+
+# Logs
+*.log
+
+# Lock files management (we'll reinstall)
+# pnpm-lock.yaml
+# package-lock.json
+
+# Temporary
+tmp
+temp
+*.tmp

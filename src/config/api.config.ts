@@ -5,34 +5,59 @@
  */
 
 /**
- * Get the API base URL from environment variables or use default
+ * Get the API base URL from environment variables or auto-detect from current domain
  * Priority:
  * 1. VITE_API_BASE_URL - Full base URL (e.g., http://localhost:3000)
  * 2. VITE_API_PORT - Port number with http://localhost:PORT
  * 3. VITE_API_URL - Legacy URL
- * 4. Default - http://localhost:3000
+ * 4. Auto-detect from current domain (for production)
+ * 5. Default - http://localhost:3000 (for local development)
  */
 export const getApiBaseUrl = (): string => {
   // Check for full base URL first
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (baseUrl) {
+    console.debug('Using VITE_API_BASE_URL:', baseUrl);
     return baseUrl;
   }
 
   // Check for port-based configuration
   const port = import.meta.env.VITE_API_PORT;
   if (port) {
-    return `http://localhost:${port}`;
+    const portUrl = `http://localhost:${port}`;
+    console.debug('Using VITE_API_PORT:', portUrl);
+    return portUrl;
   }
 
   // Check for legacy VITE_API_URL
   const legacyUrl = import.meta.env.VITE_API_URL;
   if (legacyUrl) {
+    console.debug('Using VITE_API_URL:', legacyUrl);
     return legacyUrl;
   }
 
+  // Auto-detect for production: derive API URL from current domain
+  if (typeof window !== 'undefined') {
+    const location = window.location;
+    const isDevelopment = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    
+    if (!isDevelopment) {
+      // In production, assume API is on the same domain but different port or path
+      // Try common patterns: same domain on port 3000, /api, or :3000
+      const isHttps = location.protocol === 'https:';
+      const protocol = isHttps ? 'https' : 'http';
+      
+      // First try: same domain on port 3000 (common for Node backends)
+      const apiUrl = `${protocol}://${location.hostname}:3000`;
+      console.debug('Auto-detected production API URL:', apiUrl);
+      return apiUrl;
+    }
+  }
+
   // Default development URL
-  return 'http://localhost:3000';
+  const defaultUrl = 'http://localhost:3000';
+  console.debug('Using default development URL:', defaultUrl);
+  return defaultUrl;
 };
 
 /**

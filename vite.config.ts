@@ -17,9 +17,13 @@ export default defineConfig({
       host: 'localhost',
       port: 5173,
     },
+    // SPA fallback: serve index.html for all non-asset requests in dev
+    middlewareMode: false,
   },
   preview: {
     port: 5173,
+    // SPA fallback: serve index.html for all non-asset requests in preview mode
+    middlewareMode: false,
   },
   build: {
     outDir: 'dist',
@@ -36,3 +40,4 @@ export default defineConfig({
     },
   },
 })
+
