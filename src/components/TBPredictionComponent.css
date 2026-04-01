@@ -1,0 +1,27 @@
+/* TB Prediction Component Styles */
+
+.tb-confidence-bar {
+  width: 100%;
+  background-color: #d1d5db;
+  border-radius: 9999px;
+  height: 1rem;
+  overflow: hidden;
+}
+
+.tb-confidence-fill {
+  height: 100%;
+  transition: width 0.3s ease-in-out;
+  width: var(--confidence-width, 0%);
+}
+
+.tb-confidence-fill.success {
+  background-color: #16a34a;
+}
+
+.tb-confidence-fill.warning {
+  background-color: #ea580c;
+}
+
+.tb-confidence-fill.danger {
+  background-color: #dc2626;
+}

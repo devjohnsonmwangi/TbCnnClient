@@ -1,0 +1,13 @@
+Progress: resolved 0, reused 1, downloaded 0, added 0
+Progress: resolved 100, reused 63, downloaded 0, added 0
+Progress: resolved 215, reused 169, downloaded 0, added 0
+Progress: resolved 219, reused 173, downloaded 0, added 0
+Progress: resolved 221, reused 175, downloaded 0, added 0
+Already up to date
+Progress: resolved 221, reused 175, downloaded 0, added 0, done
+ WARN  Issues with peer dependencies found
+.
+└─┬ vite 5.4.21
+  └── ✕ unmet peer @types/node@"^18.0.0 || >=20.0.0": found 16.18.126
+
+Done in 5.9s using pnpm v10.33.0
