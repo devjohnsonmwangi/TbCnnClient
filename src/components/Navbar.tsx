@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { FiMenu, FiX, FiChevronDown, FiDownload } from "react-icons/fi";
+import { FiMenu, FiX, FiChevronDown, FiDownload, FiArrowLeft, FiArrowRight } from "react-icons/fi";
 import { useAuth } from "../hooks/useAuthContext";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 
@@ -73,6 +73,31 @@ function Navbar() {
     setUserMenuOpen(false);
   };
 
+  // Presentation page navigation
+  const presentationPages = [
+    { path: "/how-it-works", label: "How It Works" },
+    { path: "/system-architecture", label: "Architecture" },
+    { path: "/workflow-explanation", label: "Workflows" },
+    { path: "/technology-stack", label: "Tech Stack" }
+  ];
+
+  const isPresentationPage = presentationPages.some(p => p.path === location.pathname);
+  const currentPageIndex = presentationPages.findIndex(p => p.path === location.pathname);
+  const canGoBack = currentPageIndex > 0;
+  const canGoForward = currentPageIndex >= 0 && currentPageIndex < presentationPages.length - 1;
+
+  const handlePrevPage = () => {
+    if (canGoBack) {
+      navigate(presentationPages[currentPageIndex - 1].path);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (canGoForward) {
+      navigate(presentationPages[currentPageIndex + 1].path);
+    }
+  };
+
   const navLinks = [
     { label: "Home", href: "/" },
     { label: "How It Works", href: "/how-it-works" },
@@ -119,6 +144,38 @@ function Navbar() {
 
           {/* Right Section - Actions and User Menu */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Presentation Navigation Buttons */}
+            {isPresentationPage && (
+              <div className="hidden sm:flex items-center gap-2 border-l border-gray-300 pl-3 ml-1">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={!canGoBack}
+                  className={`p-2 rounded-md transition-all duration-250 ${
+                    canGoBack
+                      ? "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                      : "text-gray-300 cursor-not-allowed"
+                  }`}
+                  title="Previous page"
+                  aria-label="Go to previous page"
+                >
+                  <FiArrowLeft size={18} />
+                </button>
+                <button
+                  onClick={handleNextPage}
+                  disabled={!canGoForward}
+                  className={`p-2 rounded-md transition-all duration-250 ${
+                    canGoForward
+                      ? "text-gray-700 hover:bg-green-50 hover:text-green-600"
+                      : "text-gray-300 cursor-not-allowed"
+                  }`}
+                  title="Next page"
+                  aria-label="Go to next page"
+                >
+                  <FiArrowRight size={18} />
+                </button>
+              </div>
+            )}
+
             {/* Install Button - Sleek */}
             {isInstallable && (
               <button
@@ -214,6 +271,42 @@ function Navbar() {
         {/* Mobile Navigation - Clean and Organized */}
         {mobileMenuOpen && (
           <div className="lg:hidden pb-4 space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Presentation Page Navigation for Mobile */}
+            {isPresentationPage && (
+              <div className="flex gap-2 px-4 py-3 border-b border-gray-200">
+                <button
+                  onClick={() => {
+                    handlePrevPage();
+                    setMobileMenuOpen(false);
+                  }}
+                  disabled={!canGoBack}
+                  className={`flex-1 py-2 px-3 rounded-md font-medium transition-all duration-250 flex items-center justify-center gap-2 ${
+                    canGoBack
+                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  <FiArrowLeft size={16} />
+                  Previous
+                </button>
+                <button
+                  onClick={() => {
+                    handleNextPage();
+                    setMobileMenuOpen(false);
+                  }}
+                  disabled={!canGoForward}
+                  className={`flex-1 py-2 px-3 rounded-md font-medium transition-all duration-250 flex items-center justify-center gap-2 ${
+                    canGoForward
+                      ? "bg-green-100 text-green-700 hover:bg-green-200"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  Next
+                  <FiArrowRight size={16} />
+                </button>
+              </div>
+            )}
+
             {navLinks.map((link) => (
               <Link
                 key={link.href}

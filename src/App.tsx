@@ -7,6 +7,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import LandingPage from "./pages/LandingPage";
 import HowItWorks from "./pages/HowItWorks";
+import SystemArchitecturePage from "./pages/SystemArchitecturePage";
+import WorkflowExplanationPage from "./pages/WorkflowExplanationPage";
+import TechnologyStackPage from "./pages/TechnologyStackPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PatientIntakeForm from "./pages/PatientIntakeForm";
@@ -30,6 +33,9 @@ function App() {
         <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/system-architecture" element={<SystemArchitecturePage />} />
+            <Route path="/workflow-explanation" element={<WorkflowExplanationPage />} />
+            <Route path="/technology-stack" element={<TechnologyStackPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
